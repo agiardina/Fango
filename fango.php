@@ -1,29 +1,72 @@
 <?php
 class Fango {
-	static $params;
+	
+	/**
+	 *
+	 * @var string the default controller if no controller specified
+	 */
+	public $default_controller = 'default';
 
-	static function route($rules = '',$subject = ''){
+	/**
+	 *
+	 * @var the default action if action not found
+	 */
+	public $default_action = 'error404';
 
-		/*preg_match_all("~:\w*~", $rule, $matches);
-		if ($matches) {
-			$matches = $matches[0];
-			$replacement = '';
-			foreach ($matches as $i=>$match) {
-				if ($match == 'params') {
-					$rule = str_replace($match, '(\.*)', $rule);
-				} else {
-					$rule = str_replace($match, '(\w*)', $rule);
-				}
-				$replacement = substr($match, 1) . '=$' . ($i+1) . ',';
-			}
-			$replacement = substr($replacement,0,-1);
-			self::$rules[$rule] = $replacement;
-		} else {
-			
-		}*/
+	/**
+	 *
+	 * @var the controller after the routing
+	 */
+	public $controller;
+
+	/**
+	 *
+	 * @var the action after the routing
+	 */
+	public $action;
+
+	/**
+	 *
+	 * @var array the params
+	 */
+	public $params = array();
+	
+	/**
+	 *
+	 * @var FangoModel the model
+	 */
+	public $model;
+
+
+	/**
+	 *
+	 * @param FangoModel $model 
+	 */
+	function  __construct($model = null) {
+		$this->model($model);
+	}
+
+	/**
+	 *
+	 * @param FangoModel $model
+	 * @return FangoModel
+	 */
+	function model($model = null) {
+		if ($model) {
+			$this->model = $model;
+		}
+		return $this->model;
+	}
+	/**
+	 *
+	 * @param array or string $rules
+	 * @param  $subject
+	 * @return Fango
+	 */
+	function route($rules = '',$subject = ''){
 		
-		$controller = 'default';
-		$action = 'e404';
+		$controller = $this->default_controller;
+		$action = $this->default_action;
 		$params = array();
 		
 		foreach ($rules as $rule) {
@@ -56,18 +99,77 @@ class Fango {
 				break;
 			}
 		}
-		return array('controller'=>$controller,'action'=>$action,'params'=>$params);
+		$this->controller = $controller;
+		$this->action = $action;
+		$this->params = $params;
+		return $this;
 	}
 	
-	static function dispatch($class=null,$action=null,array $params=array()){}
-	static function run(){}
+	/**
+	 *
+	 * @param string $controller
+	 * @param string $action
+	 * @param array $params 
+	 */
+	function dispatch($controller=null,$action=null,array $params=null){
+		if ($controller)$this->controller = $controller;
+		if ($action) $this->action = $action;
+		if ($params!==null) $this->params = $params;
+
+		$class_name = "{$this->controller}Controller";
+		$method_name = "{$this->action}Action";
+
+		//If the method doesn't exist use the default controller and method
+		if (!class_exists($class_name) || !method_exists($class_name, $method_name)) {
+			$this->controller = $this->default_controller;
+			$this->action = $this->default_action;
+			$class_name = "{$this->default_controller}Controller";
+			$method_name = "{$this->default_action}Action";
+		}
+		
+		$obj_controller = new $class_name($this);
+		$obj_controller->$method_name();
+	}
+	
 }
 
 class FangoController {
-	function __construct($FrontController) {}
-	static function param(){}
-	static function view(){}
-	static function model(){}
+	/**
+	 *
+	 * @var Fango The fango front controller
+	 */
+	public $fango;
+
+	/**
+	 *
+	 * @param Fango $fango 
+	 */
+	function __construct(Fango $fango) {
+		$this->fango = $fango;
+	}
+	
+	/**
+	 * setter/getter for params
+	 * 
+	 * @param string $param
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	function param($param,$value=null){
+		if ($value!==null) {
+			$this->fango->params[$param] = $value;
+		}
+		if (isset($this->fango->params[$param])) {
+			return $this->fango->params[$param];
+		}
+
+		return null;
+	}
+	
+	function view(){}
+	function model(){}
+	function error404Action() {}
+
 }
 
 class FangoView {
