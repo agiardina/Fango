@@ -130,6 +130,18 @@ class Fango {
 		$obj_controller = new $class_name($this);
 		$obj_controller->$method_name();
 	}
+
+	/**
+	 *
+	 * @param string $name of the request param
+	 * @param mixed $default value 
+	 */
+	static function request($name,$default_value=null) {
+		if (!isset($_REQUEST[$name])) {
+			$_REQUEST[$name] = $default_value;
+		}
+		return $_REQUEST[$name];
+	}
 	
 }
 
@@ -140,6 +152,13 @@ class FangoController {
 	 */
 	public $fango;
 
+
+	/**
+	 *
+	 * @var array
+	 */
+	static $views = array();
+	
 	/**
 	 *
 	 * @param Fango $fango 
@@ -166,18 +185,47 @@ class FangoController {
 		return null;
 	}
 	
-	function view(){}
+	/**
+	 *
+	 * @param string $class_name
+	 * @return FangoView 
+	 */
+	function view($class_name){
+		if (!isset(self::$views[$class_name])) {
+			self::$views[$class_name];
+		}
+		return self::$views[$class_name];
+	}
+	
 	function model(){}
 	function error404Action() {}
 
 }
 
 class FangoView {
-	function input(){}
-	function select(){}
-	function textarea(){}
+	public $value;
+	public $name;
+	public $options = array();
 
-	function render($template=null){}
+	
+	function input($properties=''){
+		$value = htmlspecialchars($this->value);
+		return "<input name=\"$this->name\" value=\"$value\" $properties />";
+	}
+	
+	function select($properties=''){
+		
+	}
+	
+	function textarea(){
+		
+	}
+
+	function render($template=null){
+		ob_start();
+		include $template;
+		return ob_get_clean();
+	}
 }
 
 class FangoModel {
