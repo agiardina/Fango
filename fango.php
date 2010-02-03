@@ -275,6 +275,22 @@ class FangoView {
 		include $this->template;
 		return ob_get_clean();
 	}
+
+	function yeld() {
+		static $i = -1;
+		$vars = array_keys(get_object_vars($this));
+
+		$n = count($vars);
+		while (++$i < $n) {
+			$var = $vars[$i];
+			$obj = $this->$var;
+			if ($obj instanceof FangoView) {
+				return $obj;
+			}
+		}
+		$i = -1;
+		return false;
+	}
 }
 
 class FangoModel {
