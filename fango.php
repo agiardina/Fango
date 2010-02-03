@@ -9,9 +9,15 @@ class Fango {
 
 	/**
 	 *
+	 * @var the default action if action not specified
+	 */
+	public $default_action = 'index';
+
+	/**
+	 *
 	 * @var the default action if action not found
 	 */
-	public $default_action = 'error404';
+	public $notfound_action = 'error404';
 
 	/**
 	 *
@@ -59,11 +65,32 @@ class Fango {
 	}
 	/**
 	 *
-	 * @param array or string $rules
+	 * @param array $custom_rules
 	 * @param  $subject
 	 * @return Fango
 	 */
-	function route($rules = '',$subject = ''){
+	function route($custom_rules = array(),$subject = ''){
+
+		//If subject has not been declared we guess that from $_SERVER
+		if (!$subject) {
+			$script = $_SERVER['PHP_SELF'];
+			$script = preg_replace("~\w*\.php$~",'',$script);
+
+			$subject = $_SERVER['REQUEST_URI'];
+			$subject = preg_replace('~\?.*$~','',$subject);
+
+			if (strpos($subject,$script)===0) {
+				$subject = substr($subject,strlen($script));
+			}
+		}
+
+		//Rules merged
+		$rules[] = '(\w+)/(\w+)/(.*)$ controller=$1,action=$2,params=$3';
+		$rules[] = '(\w+)/(\w+)/?$ controller=$1,action=$2';
+		$rules[] = '(\w+)/?$ controller=$1';
+		if ($custom_rules) {
+			$rules = array_merge($custom_rules,$rules);
+		}
 		
 		$controller = $this->default_controller;
 		$action = $this->default_action;
@@ -73,15 +100,15 @@ class Fango {
 			list($rule,$replacement) = @preg_split("/[\t\s]/",$rule,-1,PREG_SPLIT_NO_EMPTY); //Split the rule from the replace
 
 			if (preg_match("~$rule~",$subject)) {
-				
+
 				$replacement = preg_replace("~$rule~",$replacement,$subject);
 				$a_conf = explode(',',$replacement);
-				
+
 				foreach ($a_conf as $conf) {
 					list($var,$value) = explode('=',$conf);
-					if ($var == 'controller') {
+					if ($var == 'controller' && $value) {
 						$controller = $value;
-					} elseif ($var == 'action') {
+					} elseif ($var == 'action' && $action) {
 						$action = $value;
 					} elseif ($var == 'params') {
 						$_params = explode('/',$value);
@@ -122,9 +149,9 @@ class Fango {
 		//If the method doesn't exist use the default controller and method
 		if (!class_exists($class_name) || !method_exists($class_name, $method_name)) {
 			$this->controller = $this->default_controller;
-			$this->action = $this->default_action;
-			$class_name = "{$this->default_controller}Controller";
-			$method_name = "{$this->default_action}Action";
+			$this->action = $this->notfound_action;
+			$class_name = "{$this->controller}Controller";
+			$method_name = "{$this->action}Action";
 		}
 		
 		$obj_controller = new $class_name($this);
@@ -142,7 +169,7 @@ class Fango {
 		}
 		return $_REQUEST[$name];
 	}
-	
+
 }
 
 class FangoController {
@@ -203,27 +230,49 @@ class FangoController {
 }
 
 class FangoView {
-	public $value;
 	public $name;
+	public $value;
 	public $options = array();
+	public $template;
 
 	
+	function __construct($name = null){
+		if ($name) $this->name = $name;
+	}
+
 	function input($properties=''){
 		$value = htmlspecialchars($this->value);
 		return "<input name=\"$this->name\" value=\"$value\" $properties />";
 	}
 	
 	function select($properties=''){
-		
+
+		if ($this->options == array_values($this->options)) { //This is a standard array and not a map
+			$this->options = array_combine($this->options,$this->options); // Tranform a standard array in map value=>value
+		} 
+		$sreturn = "<select name=\"$this->name\" $properties >";
+		foreach ($this->options as $key=>$label) {
+			$key = htmlspecialchars($key);
+			if ($this->value == $key) {
+				$selected = 'selected="selected"';
+			} else {
+				$selected = '';
+			}
+			$sreturn .= "<option $selected value=\"$key\">$label</option>";
+		}
+		$sreturn .= "</select>";
+		return $sreturn;
 	}
 	
 	function textarea(){
 		
 	}
 
+
 	function render($template=null){
 		ob_start();
-		include $template;
+		if ($template) $this->template = $template;
+		include $this->template;
 		return ob_get_clean();
 	}
 }
