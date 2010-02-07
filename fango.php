@@ -39,30 +39,19 @@ class Fango {
 	
 	/**
 	 *
-	 * @var FangoModel the model
+	 * @var FangoDB
 	 */
-	public $model;
+	public $DB;
 
 
 	/**
 	 *
 	 * @param FangoModel $model 
 	 */
-	function  __construct($model = null) {
-		$this->model($model);
+	function  __construct($DB = null) {
+		$this->DB = $DB;
 	}
 
-	/**
-	 *
-	 * @param FangoModel $model
-	 * @return FangoModel
-	 */
-	function model($model = null) {
-		if ($model) {
-			$this->model = $model;
-		}
-		return $this->model;
-	}
 	/**
 	 *
 	 * @param array $custom_rules
@@ -76,11 +65,13 @@ class Fango {
 			$script = $_SERVER['PHP_SELF'];
 			$script = preg_replace("~\w*\.php$~",'',$script);
 
-			$subject = $_SERVER['REQUEST_URI'];
-			$subject = preg_replace('~\?.*$~','',$subject);
+			if (isset($_SERVER['REQUEST_URI'])) {
+				$subject = $_SERVER['REQUEST_URI'];
+				$subject = preg_replace('~\?.*$~','',$subject);
 
-			if (strpos($subject,$script)===0) {
-				$subject = substr($subject,strlen($script));
+				if (strpos($subject,$script)===0) {
+					$subject = substr($subject,strlen($script));
+				}
 			}
 		}
 
@@ -170,6 +161,100 @@ class Fango {
 		return $_REQUEST[$name];
 	}
 
+}
+
+class FangoDB extends PDO {
+	function model($table,$pk = null) {
+		return new FangoModel($table,$pk,$this);
+	}
+
+	function exec($select,$params){}
+	function getAll(){}
+	function getOne(){}
+	function getRow(){}
+}
+
+class FangoModel {
+	public $DB;
+	public $name;
+	public $pk;
+	protected $where = array();
+	protected $limit = array();
+	protected $order = array();
+
+	function __construct($name,$pk=null,$DB=null) {
+		$this->name = $name;
+		$this->pk = $pk;
+		$this->DB = $DB;
+	}
+
+	function limit($limit,$offset = null) {
+		$this->limit = array($limit,$offset);
+		return $this;
+	}
+
+	function order($order,$direction=null) {
+		$this->order[] = array($order,$direction);
+		return $this;
+	}
+
+	function where($statment,$param1=null,$param2=null,$paramX=null) {
+		$this->where[] = array($statment,array_shift(func_get_args()));
+		return $this;
+	}
+
+	function get() {
+
+
+	}
+
+	function update() {
+
+	}
+
+	function insert() {
+		
+	}
+
+	function save($row) {
+		$this->requirePK();
+		return $this->DB->save($this,$row);
+	}
+
+	
+	function reset($what = null) {
+		if (in_array($what,array('where','limit','order'))){
+			$this->$what = array();
+		} else {
+			$this->where = array();
+			$this->limit = array();
+			$this->order = array();
+		}
+	}
+	
+	function pkParts($row,$pk_value = null) {
+		$this->requirePK();
+
+		$pk = $this->pk;
+		if (!is_array($pk)) {
+			$pk = array($pk);
+		}
+
+		if (!$pk_value) { //If no pk specified we read the pk from the row
+			$pk_value = array_intersect_key($row,array_flip($pk));
+		} elseif (!is_array($pk_value)) { //We need pk_value as key=>value
+			$pk_value = array($pk[0]=>$pk_value);
+		}
+
+		if (count($pk) != count($pk_value)) throw new Exception('PK not valid');
+
+		$pk_where = ':' . implode(' AND :', $pk);
+		return array($pk_where,$pk_value);
+	}
+
+	protected function requirePK() {
+		if (!isset($this->DB) | !isset($this->pk)) throw new Exception("DB or PK not defined");
+	}
 }
 
 class FangoController {
@@ -291,11 +376,5 @@ class FangoView {
 		$i = -1;
 		return false;
 	}
-}
-
-class FangoModel {
-	function connect(){}
-	function getAll(){}
-	function getOne(){}
-	function getRow(){}
+	
 }
