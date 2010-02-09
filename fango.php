@@ -39,17 +39,17 @@ class Fango {
 	
 	/**
 	 *
-	 * @var FangoDB
+	 * @var Fangodb
 	 */
-	public $DB;
+	public $db;
 
 
 	/**
 	 *
 	 * @param FangoModel $model 
 	 */
-	function  __construct($DB = null) {
-		$this->DB = $DB;
+	function  __construct($db = null) {
+		$this->db = $db;
 	}
 
 	/**
@@ -163,100 +163,6 @@ class Fango {
 
 }
 
-class FangoDB extends PDO {
-	function model($table,$pk = null) {
-		return new FangoModel($table,$pk,$this);
-	}
-
-	function exec($select,$params){}
-	function getAll(){}
-	function getOne(){}
-	function getRow(){}
-}
-
-class FangoModel {
-	public $DB;
-	public $name;
-	public $pk;
-	protected $where = array();
-	protected $limit = array();
-	protected $order = array();
-
-	function __construct($name,$pk=null,$DB=null) {
-		$this->name = $name;
-		$this->pk = $pk;
-		$this->DB = $DB;
-	}
-
-	function limit($limit,$offset = null) {
-		$this->limit = array($limit,$offset);
-		return $this;
-	}
-
-	function order($order,$direction=null) {
-		$this->order[] = array($order,$direction);
-		return $this;
-	}
-
-	function where($statment,$param1=null,$param2=null,$paramX=null) {
-		$this->where[] = array($statment,array_shift(func_get_args()));
-		return $this;
-	}
-
-	function get() {
-
-
-	}
-
-	function update() {
-
-	}
-
-	function insert() {
-		
-	}
-
-	function save($row) {
-		$this->requirePK();
-		return $this->DB->save($this,$row);
-	}
-
-	
-	function reset($what = null) {
-		if (in_array($what,array('where','limit','order'))){
-			$this->$what = array();
-		} else {
-			$this->where = array();
-			$this->limit = array();
-			$this->order = array();
-		}
-	}
-	
-	function pkParts($row,$pk_value = null) {
-		$this->requirePK();
-
-		$pk = $this->pk;
-		if (!is_array($pk)) {
-			$pk = array($pk);
-		}
-
-		if (!$pk_value) { //If no pk specified we read the pk from the row
-			$pk_value = array_intersect_key($row,array_flip($pk));
-		} elseif (!is_array($pk_value)) { //We need pk_value as key=>value
-			$pk_value = array($pk[0]=>$pk_value);
-		}
-
-		if (count($pk) != count($pk_value)) throw new Exception('PK not valid');
-
-		$pk_where = ':' . implode(' AND :', $pk);
-		return array($pk_where,$pk_value);
-	}
-
-	protected function requirePK() {
-		if (!isset($this->DB) | !isset($this->pk)) throw new Exception("DB or PK not defined");
-	}
-}
-
 class FangoController {
 	/**
 	 *
@@ -265,12 +171,6 @@ class FangoController {
 	public $fango;
 
 
-	/**
-	 *
-	 * @var array
-	 */
-	static $views = array();
-	
 	/**
 	 *
 	 * @param Fango $fango 
@@ -296,20 +196,19 @@ class FangoController {
 
 		return null;
 	}
-	
+
 	/**
 	 *
-	 * @param string $class_name
-	 * @return FangoView 
+	 * @param string $name of the table
+	 * @param string $pk name 
+	 * @return FangoModel
 	 */
-	function view($class_name){
-		if (!isset(self::$views[$class_name])) {
-			self::$views[$class_name];
+	function model($name,$pk = null) {
+		if (isset($this->fango->db)) {
+			return $this->fango->db->model($table,$pk);
 		}
-		return self::$views[$class_name];
 	}
 	
-	function model(){}
 	function error404Action() {}
 
 }
@@ -377,4 +276,246 @@ class FangoView {
 		return false;
 	}
 	
+}
+
+class FangoDB extends PDO {
+	/**
+	 * Instance a table model an inject it with the database
+	 * @param string $table name
+	 * @param string $pk name
+	 * @return FangoModel
+	 */
+	function model($table,$pk = null) {
+		return new FangoModel($table,$pk,$this);
+	}
+
+	/**
+	 * @param string $sql
+	 * @param array $params
+	 * @return PDOStatement
+	 */
+	function execute($sql,$params = null){
+		$sth = $this->prepare($sql);
+		$sth->execute($params);
+		return $sth;
+	}
+
+	/**
+	 * @param string $sql
+	 * @param array $params
+	 * @return array 
+	 */
+	function getAll($sql,$params = null){
+		$sth = $this->execute($sql,$params);
+		return $sth->fetchAll(PDO::FETCH_ASSOC);
+	}
+
+	/**
+	 * @param string $sql
+	 * @param array $params
+	 * @return array 
+	 */
+	function getRow($sql,$params = null){
+		$sth = $this->execute($sql,$params);
+		return $sth->fetch(PDO::FETCH_ASSOC);
+	}
+
+	/**
+	 * @param string $sql
+	 * @param array $params
+	 * @return array
+	 */
+	function getCol($sql,$params = null){
+		$sth = $this->execute($sql,$params);
+		return $sth->fetchAll(PDO::FETCH_COLUMN);
+	}
+
+	/**
+	 * @param string $sql
+	 * @param array $params
+	 * @return mixed
+	 */
+	function getOne($sql,$params = null) {
+		$sth = $this->execute($sql,$params);
+		$res = $sth->fetch(PDO::FETCH_NUM);
+		if (is_array($res)) return array_shift($res);
+	}
+}
+
+class FangoModel {
+	/**
+	 *
+	 * @var FangoDB
+	 */
+	public $db;
+	public $name;
+	public $pk;
+	protected $fields = array();
+	protected $where = array();
+	protected $order = array();
+	protected $limit = array();
+
+	function __construct($name,$pk=null,$db=null) {
+		$this->name = $name;
+		$this->pk = $pk;
+		$this->db = $db;
+	}
+
+	function fields($fields) {
+		if (!is_array($fields)) {
+			$fields = func_get_args();
+		}
+		$this->fields = $fields;
+		return $this;
+	}
+
+	function where($clause,$params=null) {
+		if ($params !== null && !is_array($params)) {
+			$params = array($params);
+		}
+		$this->where['clause'][] = $clause;
+		if (is_array($this->where['params'])) {
+			$this->where['params'] = array_merge($this->where['params'],$params);
+		} else {
+			$this->where['params'] = $params;
+		}
+		
+		return $this;
+	}
+
+	function order($order,$direction=null) {
+		$this->order[] = array($order,$direction);
+		return $this;
+	}
+
+	function limit($limit,$offset = null) {
+		$this->limit = array($limit,$offset);
+		return $this;
+	}
+
+	function params() {
+		if (isset($this->where['params'])) {
+			return $this->where['params'];
+		}
+		return array();
+	}
+
+	function asSelect() {
+		$fields = '*';
+		$where = '';
+		$params = null;
+		$order = '';
+		$limit = '';
+
+		if ($this->fields) {
+			$fields = join(',',$this->fields);
+		} 
+		if ($this->where) {
+			$where = 'WHERE ' . join (' AND ',$this->where['clause']);
+		}
+		if ($this->order) {
+			$order = "ORDER BY ";
+			foreach ($this->order as $ao) {
+				$order .= trim("{$ao[0]} {$ao[1]}") . ',';
+			}
+			$order = substr($order,0,-1);
+		}
+		if ($this->limit) {
+			$limit = "LIMIT " . $this->limit[0];
+			if ($this->limit[1]) {
+				$limit .= " OFFSET " . $this->limit[1];
+			}
+		}
+
+		$select = trim("SELECT $fields FROM {$this->name} $where $order $limit");
+		return $select;
+	}
+
+	function getAll() {
+		return $this->db->getAll($this, $this->params());
+	}
+
+	function getRow() {
+		return $this->db->getRow($this, $this->params());
+	}
+
+	function getCol() {
+		return $this->db->getCol($this, $this->params());
+	}
+
+	function getOne() {
+		return $this->db->getOne($this, $this->params());
+	}
+
+	function count() {
+		$sql = "SELECT count(*) FROM (".$this->asSelect().") AS A";
+		return $this->db->getOne($sql,$this->params());
+	}
+
+	function insert($row) {
+		$keys = array_keys($row);
+
+		$fields = join(',',$keys);
+		$values = ':' . join(',:',$keys);
+		$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
+		return $this->db->execute($sql, $row);
+	}
+
+	function update($row,$pk=null) {
+		$this->requirePK();
+	}
+
+	function delete($row,$pk=null) {
+		$this->requirePK();
+	}
+
+	function isNew($row,$pk=null) {
+		list($pk_where,$pk_values) = $this->pkParts($row,$pk);
+		$statement = "SELECT 1 FROM {$this->name} WHERE $pk_where";
+		return !$this->db->getOne($statement,$pk_values);
+	}
+
+	function reset($what = null) {
+		if (in_array($what,array('fields','where','limit','order'))){
+			$this->$what = array();
+		} else {
+			$this->fields = array();
+			$this->where = array();
+			$this->limit = array();
+			$this->order = array();
+		}
+		return $this;
+	}
+
+	function pkParts($row,$pk_value = null) {
+		$this->requirePK();
+
+		$pk = $this->pk;
+		if (!is_array($pk)) {
+			$pk = array($pk);
+		}
+
+		if (!$pk_value) { //If no pk specified we read the pk from the row
+			$pk_value = array_intersect_key($row,array_flip($pk));
+		} elseif (!is_array($pk_value)) { //We need pk_value as key=>value
+			$pk_value = array($pk[0]=>$pk_value);
+		}
+
+		if (count($pk) != count($pk_value)) throw new Exception('PK not valid');
+
+		$pk_where = '';
+		foreach ($pk as $p) {
+			$pk_where .= "{$p} = :{$p} AND ";
+		}
+		$pk_where = substr($pk_where,0,-5);
+		return array($pk_where,$pk_value);
+	}
+
+	protected function requirePK() {
+		if (!isset($this->db) | !isset($this->pk)) throw new Exception("DB or PK not defined");
+	}
+
+	function  __toString() {
+		return $this->asSelect();
+	}
 }
