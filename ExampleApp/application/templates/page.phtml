@@ -1,0 +1,10 @@
+<html>
+	<body>
+		<h1><?=$this->title?></h1>
+		<div id="content">
+		<?while($content = $this->yeld()):?>
+			<?=$content?>
+		<?endwhile;?>
+		</div>
+	</body>
+</html>
