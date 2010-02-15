@@ -2,40 +2,66 @@
 class DefaultController  extends FangoController{
 
 	function init() {
-		//If no template specified, it will search automatically template/page.phtml
 		$this->page = new FangoView('page');
-
-		//Model for table messages
 		$this->messages = $this->fango->db->model('messages','id');
 	}
 
-	function getForm() {
-		$message = new FangoView('message');
-		$name = new FangoView('name');
-
-		$name->value($this->fango->request('name'));
-		$message->value($this->fango->request('message'));
-
-		$form = new FangoView();
-		$form->template('templates/form.phtml');
-		$form->name = $name;
-		$form->message = $message;
-		return $form;
-	}
-
-	function getAllMessages() {
-		return $this->messages->order('id','desc')->getAll();
-	}
-
-	function addAction() {
-		echo 'ad';
-	}
-
 	function indexAction() {
-		$form = $this->getForm();
-		$this->page->form = $form;
-		$this->page->messages = $this->getAllMessages();
+		$this->page->form = $this->getForm();
+		$this->page->messages = $this->getRandomMessages();
 		echo $this->page;
 	}
 
+	function addAction() {
+		$values = $this->getForm()->getValues();
+		if ($this->valid($values)) {
+			$this->messages->insert($values);
+			$id = $this->messages->lastInsertID();
+
+			$_REQUEST = array();
+			$this->page->form = $this->getForm();
+			$this->page->messages = $this->getLastMessage($id);
+		} else {
+			$this->page->error = $this->getError();
+			$this->page->form = $this->getForm();
+			$this->page->messages = $this->getRandomMessages();
+		}
+		echo $this->page;
+		
+	}
+
+	function refreshAction() {
+		echo $this->getRandomMessages();
+	}
+
+	function valid($row) {
+		return strlen($row['author']) && strlen($row['message']);
+	}
+
+	function getError() {
+		$error = new FangoView('error');
+		$error->text = "Please fill out all fields";
+		return $error;
+	}
+	
+	function getForm() {
+		$form = new FangoView('form');
+		$form->author =  new FangoView('author');
+		$form->message = new FangoView('message');
+		$form->author->value($this->fango->request('author'));
+		$form->message->value($this->fango->request('message'));
+		return $form;
+	}
+
+	function getLastMessage($id) {
+		$view = new FangoView('messages');
+		$view->messages = $this->messages->where('id = ?',$id)->limit(1)->getAll();
+		return $view;
+	}
+
+	function getRandomMessages() {
+		$view = new FangoView('messages');
+		$view->messages = $this->messages->order('rand()')->limit(3)->getAll();
+		return $view;
+	}
 }

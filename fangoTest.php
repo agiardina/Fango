@@ -53,25 +53,47 @@ function test_fangomodel_asSelect() {
 		  ->where("id = :id",array('id'=>1))
 		  ->where("name = :name",array('name'=>'andrea'))
 		  ->order('name')
-		   ->limit(1,1);
+		  ->limit(1,1);
 	assert($model == "SELECT name,surname FROM users WHERE id = :id AND name = :name ORDER BY name LIMIT 1 OFFSET 1");
 	assert($model->params() == array('id'=>1,'name'=>'andrea'));
 
 }
 
-
-function test_fangomodel_count() {
+function test_fangomodel_delete_count_insert() {
 	$model = get_model();
-	//$model->insert(array('id'=>3,'name'=>'andrea'));
+	$model->pk = array('name','surname');
+	$pk = array('name'=>'mario','surname'=>'rossi');
+	$new_row =  array('id'=>2,'name'=>'mario','surname'=>'rossi');
+
 	assert($model->count() == 2);
+	$model->delete($pk);
+	assert($model->count() == 1); 
+	$model->insert($new_row);
+	assert($model->count() == 2);
+}
+
+function test_fangomodel_update() {
+	$model = get_model();
+	$model->pk = 'id';
+
+	$old_row = array('id'=>1,'name'=>'andrea','surname'=>'giardina');
+	$row = array('id'=>10,'name'=>'andrea','surname'=>'giardina');
+	$model->update($row,1);
+	assert($model->where("name='andrea'")->getRow() == $row);
+	
+	$model->pk = array('name','surname');
+	$model->update($old_row,array('name'=>'andrea','surname'=>'giardina'));
+	assert($model->where("name='andrea'")->getRow() == $old_row);
+
+
 }
 
 function test_fangomodel_pkparts() {
 	$model = get_model();
 
 	$model->pk = 'id';
-	$pk_parts = $model->pkParts(array('id'=>1)); 
-	assert($pk_parts == array('id = :id',array('id'=>1)));
+	$pk_parts = $model->pkParts(array('id'=>1));
+	assert($pk_parts == array('id = :__PK__id',array('__PK__id'=>1)));
 
 	$model->pk = array('name','surname');
 	try {
@@ -81,10 +103,10 @@ function test_fangomodel_pkparts() {
 
 	$model->pk = array('name','surname');
 	$pk_parts = $model->pkParts(array('name'=>'andrea','surname'=>'giardina'));
-	assert($pk_parts == array('name = :name AND surname = :surname',array('name'=>'andrea','surname'=>'giardina')));
+	assert($pk_parts == array('name = :__PK__name AND surname = :__PK__surname',array('__PK__name'=>'andrea','__PK__surname'=>'giardina')));
 
 	$pk_parts = $model->pkParts(array('name'=>'andrea','surname'=>'sardina'),array('name'=>'andrea','surname'=>'giardina'));
-	assert($pk_parts == array('name = :name AND surname = :surname',array('name'=>'andrea','surname'=>'giardina')));
+	assert($pk_parts == array('name = :__PK__name AND surname = :__PK__surname',array('__PK__name'=>'andrea','__PK__surname'=>'giardina')));
 
 	try {
 		$model->pkParts(array('id'),array('name'=>'andrea'));

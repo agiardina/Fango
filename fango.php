@@ -212,7 +212,10 @@ class FangoController {
 		}
 	}
 	
-	function error404Action() {}
+	function error404Action() {
+		header("HTTP/1.0 404 Not Found");
+		echo "<h1>Page Not Found</h1>";
+	}
 
 }
 
@@ -251,6 +254,15 @@ class FangoView {
 		if (!$template && $name) {
 			$this->_template = "templates/$name.phtml";
 		}
+	}
+
+	/**
+	 * Return the string to include jquery
+	 * @param string $version of jquery
+	 * @return string
+	 */
+	function includeJQuery($version = "1.4.1") {
+		return "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/{$version}/jquery.min.js\" type=\"text/javascript\"></script>";
 	}
 
 	/**
@@ -310,31 +322,36 @@ class FangoView {
 	}
 
 	/**
-	 * @param string $value 
+	 *
+	 * @param string $value
+	 * @return string 
 	 */
 	function value($value=null) {
-		$this->prop('value',$value);
+		return $this->prop('value',$value);
 	}
 
 	/**
 	 * @param string $template
+	 * @return string
 	 */
 	function template($template=null) {
-		$this->prop('template',$template);
+		return $this->prop('template',$template);
 	}
 
 	/**
 	 * @param array $options
+	 * @return array
 	 */
 	function options($options=array()) {
-		$this->prop('options',$options);
+		return $this->prop('options',$options);
 	}
 
 	/**
 	 * @param string $name
+	 * @return string 
 	 */
 	function name($name=null) {
-		$this->prop('name',$name);
+		return $this->prop('name',$name);
 	}
 
 	protected function prop($name,$value=null) {
@@ -371,6 +388,19 @@ class FangoView {
 		}
 		$i = -1;
 		return false;
+	}
+
+	/**
+	 * Return all values of subviews
+	 * @return array
+	 */
+	function getValues() {
+		$ret = array();
+		while ($view = $this->yeld()) {
+			$name = $view->name();
+			if ($name) $ret[$name] = $view->value();
+		}
+		return $ret;
 	}
 	
 }
@@ -514,7 +544,7 @@ class FangoModel {
 			$params = array($params);
 		}
 		$this->where['clause'][] = $clause;
-		if (is_array($this->where['params'])) {
+		if (isset($this->where['params'])) {
 			$this->where['params'] = array_merge($this->where['params'],$params);
 		} else {
 			$this->where['params'] = $params;
@@ -638,8 +668,18 @@ class FangoModel {
 		$fields = join(',',$keys);
 		$values = ':' . join(',:',$keys);
 		$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
-		return $this->db->execute($sql, $row);
+		$stm = $this->db->execute($sql, $row);
+		return !(bool)$stm->errorCode();
 	}
+
+	/**
+	 * Shortcut for PDO::lastInsertID
+	 * @param string $seqname
+	 * @return int
+	 */
+	 function lastInsertID($seqname = null) {
+		 return $this->db->lastInsertId($seqname);
+	 }
 
 	/**
 	 * Delete the row specified by the pk param in the related table
@@ -650,7 +690,8 @@ class FangoModel {
 		$this->requirePK();
 		list($where,$params) = $this->pkParts(null,$pk);
 		$sql = "DELETE FROM {$this->name} WHERE $where";
-		return $this->db->execute($sql,$params);
+		$stm = $this->db->execute($sql,$params);
+		return !(bool)$stm->errorCode();
 	}
 
 	/**
