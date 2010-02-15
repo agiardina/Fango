@@ -1,0 +1,46 @@
+body { 
+    font: 14px sans-serif;
+	color:#777;
+}
+
+label {
+	display:block;
+	margin:20px 0;
+}
+
+label span {
+	color:#444;
+	display:block;
+}
+
+label textarea,
+label input {
+	width:600px;
+	font-size: 1.5em;
+	border:1px solid #ccc;
+	background:#fbfbfb;
+}
+
+label textarea {
+	height:6em;
+}
+
+input.submit {
+	width:200px
+}
+
+#content {
+	width:600px;
+	margin:auto;
+}
+.error {
+	color:red
+}
+.message {
+	margin:20px;
+}
+.message .text {
+	font-size:24px;
+	font-style: italic;
+}
+

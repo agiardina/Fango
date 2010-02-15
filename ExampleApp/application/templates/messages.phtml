@@ -1,0 +1,8 @@
+<div id="messages">
+	<?foreach($this->messages as $message): ?>
+	<div class="message">
+		<div class="text"><?=$message['message']?></div>
+		<div class="author">Said by <?=$message['author']?> at <?=$message['date']?></div>
+	</div>
+	<?endforeach?>
+</div>
