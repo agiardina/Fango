@@ -516,6 +516,9 @@ class FangoModel {
 		$this->name = $name;
 		$this->pk = $pk;
 		$this->db = $db;
+		
+		$this->beforeUpdate = new FangoEvent('beforeUpdate');
+		$this->beforeInsert = new FangoEvent('beforeInsert');
 	}
 
 	/**
@@ -701,15 +704,22 @@ class FangoModel {
 	 * @return PDOStatement
 	 */
 	function update($row,$pk=null) {
-		$this->requirePK();
-		list($where,$pk_params) = $this->pkParts($row,$pk);
-		$sql = "UPDATE {$this->name} SET ";
-		foreach ($row as $field=>$value) {
-			$sql .= "{$field}=:{$field},";
+		$e = $this->beforeUpdate->fire($this,$row,$pk);
+		
+		if (!$e->preventDefault()) {
+			list (,$row,$pk) = $e->params;
+			
+			$this->requirePK();
+			list($where,$pk_params) = $this->pkParts($row,$pk);
+			$sql = "UPDATE {$this->name} SET ";
+			foreach ($row as $field=>$value) {
+				$sql .= "{$field}=:{$field},";
+			}
+			$sql = substr($sql,0,-1) . " WHERE $where";
+			$params = array_merge($pk_params,$row);
+
+			return $this->db->execute($sql,$params);
 		}
-		$sql = substr($sql,0,-1) . " WHERE $where";
-		$params = array_merge($pk_params,$row);
-		return $this->db->execute($sql,$params);
 	}
 	
 	/**
@@ -786,5 +796,59 @@ class FangoModel {
 	 */
 	function  __toString() {
 		return $this->asSelect();
+	}
+}
+
+class FangoEvent {
+	public $params;
+	protected $observers = array();
+	protected $prevent = false;
+	protected $name;
+
+	function __construct($name) {
+		$this->name = $name;
+	}
+
+	function __get($name) {
+		if (isset($this->$name)) return $this->$name;
+	}
+
+	function preventDefault($prevent = null) {
+		if ($prevent !== null) {
+			$this->prevent = $prevent;
+		}
+		return $this->prevent;
+	}
+
+	function addObserver($observer) {
+		if (!in_array($observer,$this->observers)) {
+			$this->observers[] = $observer;
+		}
+	}
+	function deleteObserver($observer) {
+		$key = array_search($observer,$this->observers);
+		if ($key !== false) unset($this->observers[$key]);
+	}
+
+	function fire() {
+		$this->params = func_get_args();
+		foreach ($this->observers as $observer) {
+			$method = $this->name;
+			if (method_exists($observer,$method)) {
+				$observer->$method($this);
+			}
+		}
+		return $this;
+	}
+}
+
+class FangoObserver {
+
+	function subscribe($event) {
+		$event->addObserver($this);
+	}
+
+	function unsubscribe($event) {
+		$event->deleteObserver($this);
 	}
 }
