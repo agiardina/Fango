@@ -36,12 +36,18 @@ class Fango {
 	 */
 	public $db;
 
+	/**
+	 * @var FangoEvent 
+	 */
+	static $onLoad;
+
 
 	/**
 	 * @param FangoDB $db
 	 */
 	function  __construct($db = null) {
 		$this->db = $db;
+		self::$onLoad->fire($this);
 	}
 
 	/**
@@ -174,12 +180,18 @@ class FangoController {
 	 */
 	public $fango;
 
+	/**
+	 * @var FangoEvent 
+	 */
+	static $onLoad;
+
 
 	/**
 	 * @param Fango $fango 
 	 */
 	function __construct(Fango $fango) {
 		$this->fango = $fango;
+		self::$onLoad->fire($this);
 	}
 	
 	/**
@@ -244,6 +256,11 @@ class FangoView {
 	 */
 	protected $_template;
 
+	/**
+	 * @var FangoEvent 
+	 */
+	static $onLoad;
+
 	
 	/**
 	 * @param string $name of the view
@@ -254,6 +271,7 @@ class FangoView {
 		if (!$template && $name) {
 			$this->_template = "templates/$name.phtml";
 		}
+		self::$onLoad->fire($this);
 	}
 
 	/**
@@ -322,7 +340,6 @@ class FangoView {
 	}
 
 	/**
-	 *
 	 * @param string $value
 	 * @return string 
 	 */
@@ -406,6 +423,17 @@ class FangoView {
 }
 
 class FangoDB extends PDO {
+
+	/**
+	 * @var FangoEvent 
+	 */
+	static $onLoad;
+
+	function __construct($dsn, $username=null, $password=null,$driver_options=array()) {
+		parent::__construct($dsn,$username,$password,$driver_options);
+		self::$onLoad->fire();
+	}
+	
 	/**
 	 * Instance a table model an inject it with the database
 	 * @param string $table name
@@ -507,6 +535,11 @@ class FangoModel {
 	protected $limit = array();
 
 	/**
+	 * @var FangoEvent 
+	 */
+	static $onLoad;
+
+	/**
 	 *
 	 * @param string $name
 	 * @param string $pk
@@ -519,11 +552,12 @@ class FangoModel {
 		
 		$this->beforeUpdate = new FangoEvent('beforeUpdate');
 		$this->beforeInsert = new FangoEvent('beforeInsert');
+
+		self::$onLoad->fire($this);
 	}
 
 	/**
 	 * Set the fields to extract
-	 *
 	 * @param array $fields
 	 * @return FangoModel 
 	 */
@@ -537,7 +571,6 @@ class FangoModel {
 
 	/**
 	 * Add a where clause in the PDO format 
-	 *
 	 * @param string $clause
 	 * @param array $params
 	 * @return FangoModel
@@ -558,7 +591,6 @@ class FangoModel {
 
 	/**
 	 * Add an order clause
-	 *
 	 * @param string $order field
 	 * @param string $direction (asc,desc)
 	 * @return FangoModel
@@ -570,7 +602,6 @@ class FangoModel {
 
 	/**
 	 * Set limit and offset
-	 *
 	 * @param int $limit
 	 * @param int $offset
 	 * @return FangoModel 
@@ -652,7 +683,6 @@ class FangoModel {
 	}
 
 	/**
-	 *
 	 * @return int the number of row of the built select
 	 */
 	function count() {
@@ -666,13 +696,17 @@ class FangoModel {
 	 * @return PDOStatement
 	 */
 	function insert($row) {
-		$keys = array_keys($row);
+		$e = $this->beforeInsert->fire($this,$row);
+		if (!$e->preventDefault()) {
+			list (,$row) = $e->params;
+			$keys = array_keys($row);
 
-		$fields = join(',',$keys);
-		$values = ':' . join(',:',$keys);
-		$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
-		$stm = $this->db->execute($sql, $row);
-		return !(bool)$stm->errorCode();
+			$fields = join(',',$keys);
+			$values = ':' . join(',:',$keys);
+			$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
+			$stm = $this->db->execute($sql, $row);
+			return !(bool)$stm->errorCode();
+		}
 	}
 
 	/**
@@ -846,9 +880,46 @@ class FangoObserver {
 
 	function subscribe($event) {
 		$event->addObserver($this);
+		return $this;
 	}
 
 	function unsubscribe($event) {
 		$event->deleteObserver($this);
+		return $this;
 	}
 }
+
+class FangoPlugin  extends FangoObserver {
+
+	static $loaded = array();
+	
+	function  __construct() {
+		if (isset($this->pluginto)) $this->pluginto($this->pluginto);
+	}
+
+	function pluginto($class) {
+		$pro = get_class_vars($class);
+		if (isset($pro['onLoad']) && $pro['onLoad'] instanceof FangoEvent) {
+			$this->subscribe($pro['onLoad']);
+		}
+	}
+
+	function onLoad($e) {
+		if (is_callable(array($this, 'plug'))) $this->plug($e->params[0]);
+	}
+
+	static function load($name) {
+		if (!isset(self::$loaded[$name])) {
+			$class = "{$name}Plugin";
+			self::$loaded[$name] = new $class;
+		}
+		return self::$loaded[$name];
+	}
+
+}
+
+Fango::$onLoad = new FangoEvent('onLoad');
+FangoDB::$onLoad = new FangoEvent('onLoad');
+FangoModel::$onLoad = new FangoEvent('onLoad');
+FangoView::$onLoad = new FangoEvent('onLoad');
+FangoController::$onLoad = new FangoEvent('onLoad');
