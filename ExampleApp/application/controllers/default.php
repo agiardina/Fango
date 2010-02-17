@@ -4,9 +4,6 @@ class DefaultController  extends FangoController{
 	function init() {
 		$this->page = new FangoView('page');
 		$this->messages = $this->fango->db->model('messages','id');
-
-		$stupidplugin = new StupidPlugin();
-		$stupidplugin->subscribe($this->messages->beforeInsert);
 	}
 
 	function indexAction() {
