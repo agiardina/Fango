@@ -1,4 +1,21 @@
 <?php
+/**
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*
+* @author Andrea Giardina <andrea.giardina@crealabs.it>
+* @link http://github.com/agiardina/Fango
+*/
 class Fango {
 	
 	/**
@@ -41,12 +58,26 @@ class Fango {
 	 */
 	static $onLoad;
 
+	/**
+	 * @var FangoEvent 
+	 */
+	public $beforeDispatch;
+
+	/**
+	 * @var FangoEvent
+	 */
+	public $afterDispatch;
+
 
 	/**
 	 * @param FangoDB $db
 	 */
 	function  __construct($db = null) {
 		$this->db = $db;
+
+		$this->beforeDispatch = new FangoEvent('beforeDispatch');
+		$this->afterDispatch = new FangoEvent('afterDispatch');
+		
 		self::$onLoad->fire($this);
 	}
 
@@ -123,6 +154,7 @@ class Fango {
 		$this->controller = $controller;
 		$this->action = $action;
 		$this->params = $params;
+
 		return $this;
 	}
 	
@@ -135,6 +167,9 @@ class Fango {
 		if ($controller)$this->controller = $controller;
 		if ($action) $this->action = $action;
 		if ($params!==null) $this->params = $params;
+
+		$e = $this->beforeDispatch->fire($this); //BeforeDispatch Event Fired
+		if ($e->preventDefault()) return;
 
 		$class_name = "{$this->controller}Controller";
 		$method_name = "{$this->action}Action";
@@ -150,6 +185,8 @@ class Fango {
 		$obj_controller = new $class_name($this);
 		$obj_controller->init();
 		$obj_controller->$method_name();
+		
+		$this->afterDispatch->fire($this); //AfterDispatch Event Fired
 	}
 
 	/**
@@ -429,6 +466,9 @@ class FangoDB extends PDO {
 	 */
 	static $onLoad;
 
+	/**
+	 * @see PDO::__construct
+	 */
 	function __construct($dsn, $username=null, $password=null,$driver_options=array()) {
 		parent::__construct($dsn,$username,$password,$driver_options);
 		self::$onLoad->fire();
@@ -540,7 +580,11 @@ class FangoModel {
 	static $onLoad;
 
 	/**
-	 *
+	 * @var array
+	 */
+	public $events = array('beforeUpdate','beforeInsert','afterUpdate','afterInsert');
+
+	/**
 	 * @param string $name
 	 * @param string $pk
 	 * @param FangoDB $db
@@ -550,9 +594,6 @@ class FangoModel {
 		$this->pk = $pk;
 		$this->db = $db;
 		
-		$this->beforeUpdate = new FangoEvent('beforeUpdate');
-		$this->beforeInsert = new FangoEvent('beforeInsert');
-
 		self::$onLoad->fire($this);
 	}
 
@@ -562,9 +603,8 @@ class FangoModel {
 	 * @return FangoModel 
 	 */
 	function fields($fields) {
-		if (!is_array($fields)) {
-			$fields = func_get_args();
-		}
+		if (!is_array($fields)) $fields = func_get_args();
+
 		$this->fields = $fields;
 		return $this;
 	}
@@ -630,12 +670,10 @@ class FangoModel {
 		$order = '';
 		$limit = '';
 
-		if ($this->fields) {
-			$fields = join(',',$this->fields);
-		} 
-		if ($this->where) {
-			$where = 'WHERE ' . join (' AND ',$this->where['clause']);
-		}
+		if ($this->fields) $fields = join(',',$this->fields);
+
+		if ($this->where) $where = 'WHERE ' . join (' AND ',$this->where['clause']);
+		
 		if ($this->order) {
 			$order = "ORDER BY ";
 			foreach ($this->order as $ao) {
@@ -643,6 +681,7 @@ class FangoModel {
 			}
 			$order = substr($order,0,-1);
 		}
+		
 		if ($this->limit) {
 			$limit = "LIMIT " . $this->limit[0];
 			if ($this->limit[1]) {
@@ -696,17 +735,19 @@ class FangoModel {
 	 * @return PDOStatement
 	 */
 	function insert($row) {
-		$e = $this->beforeInsert->fire($this,$row);
-		if (!$e->preventDefault()) {
-			list (,$row) = $e->params;
-			$keys = array_keys($row);
+		$e = $this->beforeInsert->fire($this,$row); //BeforeInsert event fired
+		list (,$row) = $e->params;
+		if ($e->preventDefault()) return;
+		
+		$keys = array_keys($row);
 
-			$fields = join(',',$keys);
-			$values = ':' . join(',:',$keys);
-			$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
-			$stm = $this->db->execute($sql, $row);
-			return !(bool)$stm->errorCode();
-		}
+		$fields = join(',',$keys);
+		$values = ':' . join(',:',$keys);
+		$sql = "INSERT INTO {$this->name} ($fields) VALUES($values)";
+		$stm = $this->db->execute($sql, $row);
+
+		$this->afterInsert->fire($this,$row); //AfterInsert event fired
+		return !(bool)$stm->errorCode();
 	}
 
 	/**
@@ -724,10 +765,16 @@ class FangoModel {
 	 * @return DBOStatement
 	 */
 	function delete($pk) {
+		$e = $this->beforeDelete->fire($this,$pk);
+		list (,$pk) = $e->params;
+		if ($e->preventDefault()) return;
+		
 		$this->requirePK();
 		list($where,$params) = $this->pkParts(null,$pk);
 		$sql = "DELETE FROM {$this->name} WHERE $where";
 		$stm = $this->db->execute($sql,$params);
+
+		$this->afterDelete->fire($this,$pk);
 		return !(bool)$stm->errorCode();
 	}
 
@@ -738,22 +785,22 @@ class FangoModel {
 	 * @return PDOStatement
 	 */
 	function update($row,$pk=null) {
-		$e = $this->beforeUpdate->fire($this,$row,$pk);
-		
-		if (!$e->preventDefault()) {
-			list (,$row,$pk) = $e->params;
-			
-			$this->requirePK();
-			list($where,$pk_params) = $this->pkParts($row,$pk);
-			$sql = "UPDATE {$this->name} SET ";
-			foreach ($row as $field=>$value) {
-				$sql .= "{$field}=:{$field},";
-			}
-			$sql = substr($sql,0,-1) . " WHERE $where";
-			$params = array_merge($pk_params,$row);
+		$e = $this->beforeUpdate->fire($this,$row,$pk); //BeforeUpdate event fired
+		list (,$row,$pk) = $e->params;
+		if ($e->preventDefault()) return;
 
-			return $this->db->execute($sql,$params);
+		$this->requirePK();
+		list($where,$pk_params) = $this->pkParts($row,$pk);
+		$sql = "UPDATE {$this->name} SET ";
+		foreach ($row as $field=>$value) {
+			$sql .= "{$field}=:{$field},";
 		}
+		$sql = substr($sql,0,-1) . " WHERE $where";
+		$params = array_merge($pk_params,$row);
+
+		$return = $this->db->execute($sql,$params);
+		$this->afterUpdate->fire($this,$row,$pk,$return); //AfterUpdate event fired
+		return $return;
 	}
 	
 	/**
@@ -795,9 +842,7 @@ class FangoModel {
 		$this->requirePK();
 
 		$pk = $this->pk;
-		if (!is_array($pk)) {
-			$pk = array($pk);
-		}
+		if (!is_array($pk)) $pk = array($pk);
 
 		if (!$pk_value) { //If no pk specified we read the pk from the row
 			$pk_value = array_intersect_key($row,array_flip($pk));
@@ -831,39 +876,78 @@ class FangoModel {
 	function  __toString() {
 		return $this->asSelect();
 	}
+
+	/**
+	 * Used to lazy loading events
+	 */
+	function __get($name) {
+		FangoEvent::lazyLoading($this,$name);
+		return $this->$name;
+	}
 }
 
 class FangoEvent {
+	/**
+	 * @var array the params passed to the obsvers
+	 */
 	public $params;
+
+	/**
+	 * @var array list of observer for the events
+	 */
 	protected $observers = array();
+
+	/**
+	 * @var boolean
+	 */
 	protected $prevent = false;
+	/**
+	 * @var string event name
+	 */
 	protected $name;
 
+	/**
+	 * @param string $name the event name
+	 */
 	function __construct($name) {
 		$this->name = $name;
 	}
 
+	/**
+	 * Getter for protected properties, the name can be read but not changed
+	 * @param string $name
+	 */
 	function __get($name) {
 		if (isset($this->$name)) return $this->$name;
 	}
 
+	/**
+	 * @param boolean $prevent
+	 * @return boolean
+	 */
 	function preventDefault($prevent = null) {
-		if ($prevent !== null) {
-			$this->prevent = $prevent;
-		}
+		if ($prevent !== null) $this->prevent = $prevent;
 		return $this->prevent;
 	}
 
+	/**
+	 * @param FangoObserver $observer 
+	 */
 	function addObserver($observer) {
-		if (!in_array($observer,$this->observers)) {
-			$this->observers[] = $observer;
-		}
+		if (!in_array($observer,$this->observers)) $this->observers[] = $observer;
 	}
+	
+	/**
+	 * @param FangoObserver $observer
+	 */
 	function deleteObserver($observer) {
 		$key = array_search($observer,$this->observers);
 		if ($key !== false) unset($this->observers[$key]);
 	}
 
+	/**
+	 * Fire the event
+	 */
 	function fire() {
 		$this->params = func_get_args();
 		foreach ($this->observers as $observer) {
@@ -873,6 +957,17 @@ class FangoEvent {
 			}
 		}
 		return $this;
+	}
+
+	/**
+	 * @param Object $subject
+	 */
+	static function lazyLoading($subject,$event) {
+		if (isset($subject->events) && is_array($subject->events)) {
+			$subject->$event = new FangoEvent($event);
+			return $subject->$event;
+		}
+		throw new Exception("Property $event doesn't exists");
 	}
 }
 
@@ -918,6 +1013,7 @@ class FangoPlugin  extends FangoObserver {
 
 }
 
+//onLoad events set to class level
 Fango::$onLoad = new FangoEvent('onLoad');
 FangoDB::$onLoad = new FangoEvent('onLoad');
 FangoModel::$onLoad = new FangoEvent('onLoad');

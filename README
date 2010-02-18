@@ -1,0 +1,23 @@
+What is Fango?
+Fango is a minified (<1000 sloc) one-file MVC framework.
+
+What does Fango mean?
+Fango is an Italian word which means "mud".
+
+Why did you name a framework in such a stupid way?
+Did you prefer another (boring) cool name? Ruby, groovy, symphony and so on?
+Anyway, as a developer I like to put my hands in the mud and I'm not afraid to get dirty myself
+if I need it... don't you?
+
+Why should I use a one-file framework?
+Actually... you shouldn't!
+
+Seriously!
+Perhaps you can use your time to sketch up your next
+great idea instead of learnig how to use a complicate framework. Or perhaps using a
+one-file framework is better than not using any framework at all. Or, simply,
+you just don't need any additional functionality than those ones fango gives you.
+
+How can I test the ExampleApp?
+Create a virtual host to point to ExampleApp/public. Create a mysql db called fango.
+Install the messages.sql inside the sql folder. 
