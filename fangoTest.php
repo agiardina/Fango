@@ -1,4 +1,14 @@
 <?php
+/*
+This is an integration test. Create a mysql database named fango and run this sql before run the test. 
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` text,
+  `surname` text,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=latin1;
+INSERT INTO `users` VALUES (1,'andrea','giardina'),(2,'mario','rossi');
+*/
 require_once 'fango.php';
 
 function test_fangodb_getone() {
