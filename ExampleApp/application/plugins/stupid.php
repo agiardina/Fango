@@ -23,7 +23,7 @@ class StupidPlugin extends FangoPlugin {
 	function beforeInsert($e) {
 		$row =& $e->params[1];
 		foreach ($row as $key=>$value) {
-			//Ya, I know, it's very stupid example, but you shoud be able know to do
+			//Ya, I know, it's very stupid example, but you shoud be able now to do
 			//something more useful, for example a validator system :P
 			$row[$key] = preg_replace("/I love drugs/i", 'I love SEX',$value);
 		}
