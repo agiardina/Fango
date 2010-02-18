@@ -1,5 +1,7 @@
 What is Fango?
-Fango is a minified (<1000 sloc) one-file MVC framework.
+Fango is a minified (<1000 sloc) one-file PHP MVC framework
+implementing the observer pattern and the event driven programming.
+It has full support for PDO DB, external templates and plugins.
 
 What does Fango mean?
 Fango is an Italian word which means "mud".
