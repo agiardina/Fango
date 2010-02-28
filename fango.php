@@ -377,8 +377,8 @@ class FangoView {
  * @method FangoInput options() options(array $options)
  * @method FangoInput value() value(string $value)
  * @method string getName()
- * @method array getOptions()
  * @method string getValue getValue()
+ * @method array getOptions()
  */
 class FangoInput {
 	/**
@@ -462,19 +462,19 @@ class FangoInput {
 	}
 
 	/**
-	 * Render the view as textarea
+	 * Render the input as textarea
 	 * @param string $properties the html properties
 	 * @return string
 	 */
 	function textarea($properties=''){
 		$value = htmlspecialchars($this->value);
-		$properties = $this->getProperties();
+		$properties = $this->getProperties($properties);
 		return "<textarea name=\"$this->name\" $properties >$value</textarea>";
 	}
 
 	/**
 	 * A method getSomething will return the value of the var something
-	 * A method something will set the value of the protected var_something and return
+	 * A method something will set the value of the var something and return
 	 * the object without breaking the chain
 	 */
 	function __call($name,$arguments) {
