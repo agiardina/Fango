@@ -69,12 +69,7 @@ class Fango {
 	public $afterDispatch;
 
 
-	/**
-	 * @param FangoDB $db
-	 */
-	function  __construct($db = null) {
-		$this->db = $db;
-
+	function  __construct() {
 		$this->beforeDispatch = new FangoEvent('beforeDispatch');
 		$this->afterDispatch = new FangoEvent('afterDispatch');
 		
@@ -257,7 +252,7 @@ class FangoController {
 	 */
 	function model($name,$pk = null) {
 		if (isset($this->fango->db)) {
-			return $this->fango->db->model($table,$pk);
+			return $this->fango->db->model($name,$pk);
 		}
 	}
 	
@@ -316,7 +311,7 @@ class FangoView {
 	 * @param string $version of jquery
 	 * @return string
 	 */
-	function includeJQuery($version = "1.4.1") {
+	static function includeJQuery($version = "1.4.1") {
 		return "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/{$version}/jquery.min.js\" type=\"text/javascript\"></script>";
 	}
 
@@ -467,12 +462,26 @@ class FangoDB extends PDO {
 	static $onLoad;
 
 	/**
+	 * @var <type> 
+	 */
+	static $db;
+
+	/**
 	 * @see PDO::__construct
 	 */
-	function __construct($dsn, $username=null, $password=null,$driver_options=array()) {
+	static function connect($dsn, $username=null, $password=null,$driver_options=array()) {
+		self::$db = new FangoDB($dsn,$username,$password,$driver_options);
+	}
+
+	/**
+	 * @see PDO::__construct
+	 */
+	function __construct($dsn,$username=null,$password=null,$driver_options=array()) {
 		parent::__construct($dsn,$username,$password,$driver_options);
 		self::$onLoad->fire();
 	}
+
+
 	
 	/**
 	 * Instance a table model an inject it with the database
@@ -592,9 +601,20 @@ class FangoModel {
 	function __construct($name,$pk=null,$db=null) {
 		$this->name = $name;
 		$this->pk = $pk;
-		$this->db = $db;
+		$this->setDB($db);
 		
 		self::$onLoad->fire($this);
+	}
+
+	/**
+	 * @param FangoDB $db 
+	 */
+	function setDB($db=null) {
+		if (is_object($db)) {
+			$this->db = $db;
+		} elseif (is_object(FangoDB::$db)) {
+			$this->db = FangoDB::$db;
+		}
 	}
 
 	/**
