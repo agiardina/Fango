@@ -4,18 +4,20 @@
  * the plugin system and the observer pattern
  */
 class StupidPlugin extends FangoPlugin {
-	/**
-	 * "Attach" the plugin to each instance of FangoModel
-	 * @var string
-	 */
-	public $pluginto = 'FangoModel';
+
+	static $plug = 'FangoModel';
+	
+	function  __construct() {
+		//Attach the plugin to each instance of FangoModel
+		$this->plug(self::$plug);
+	}
 
 	/**
 	 * Everty time a FangoModel instance fires the onLoad event the plug method
 	 * is called.
 	 * @param FangoModel $model
 	 */
-	function plug($model) {
+	function onPlug($model) {
 		//We decided to intercept the beforeInsert event of each FangoModel instance
 		$this->subscribe($model->beforeInsert);
 	}

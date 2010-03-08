@@ -3,7 +3,7 @@ class DefaultController  extends FangoController{
 
 	function init() {
 		$this->page = new FangoView('page');
-		$this->messages = $this->fango->db->model('messages','id');
+		$this->messages = new FangoModel('messages','id');
 	}
 
 	function indexAction() {
@@ -15,6 +15,7 @@ class DefaultController  extends FangoController{
 	function addAction() {
 		$values = $this->getForm()->getValues();
 		if ($this->valid($values)) {
+
 			$this->messages->insert($values);
 			$id = $this->messages->lastInsertID();
 
@@ -46,8 +47,8 @@ class DefaultController  extends FangoController{
 	
 	function getForm() {
 		$form = new FangoView('form');
-		$form->author =  new FangoView('author');
-		$form->message = new FangoView('message');
+		$form->author =  new FangoInput('author');
+		$form->message = new FangoInput('message');
 		$form->author->value($this->fango->request('author'));
 		$form->message->value($this->fango->request('message'));
 		return $form;

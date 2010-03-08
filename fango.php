@@ -1,23 +1,23 @@
 <?php
 /**
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Lesser General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-* @author Andrea Giardina <andrea.giardina@crealabs.it>
-* @link http://github.com/agiardina/Fango
-*/
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Andrea Giardina <andrea.giardina@crealabs.it>
+ * @link http://github.com/agiardina/Fango
+ */
 class Fango {
-	
+
 	/**
 	 * @var string the default controller if no controller specified
 	 */
@@ -47,19 +47,19 @@ class Fango {
 	 * @var array the params
 	 */
 	public $params = array();
-	
+
 	/**
 	 * @var FangoDB
 	 */
 	public $db;
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	static $onLoad;
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	public $beforeDispatch;
 
@@ -72,21 +72,23 @@ class Fango {
 	function  __construct() {
 		$this->beforeDispatch = new FangoEvent('beforeDispatch');
 		$this->afterDispatch = new FangoEvent('afterDispatch');
-		
+
 		self::$onLoad->fire($this);
 	}
 
 	/**
 	 * Extend this method to run a code every time a controller is created
 	 */
-	function init() {}
+	function init() {
+
+	}
 
 	/**
 	 * @param array $custom_rules
 	 * @param  $subject
 	 * @return Fango
 	 */
-	function route($custom_rules = array(),$subject = ''){
+	function route($custom_rules = array(),$subject = '') {
 
 		//If subject has not been declared we guess that from $_SERVER
 		if (!$subject) {
@@ -111,11 +113,11 @@ class Fango {
 			if (!is_array($custom_rules)) $custom_rules = array($custom_rules);
 			$rules = array_merge($custom_rules,$rules);
 		}
-		
+
 		$controller = $this->default_controller;
 		$action = $this->default_action;
 		$params = array();
-		
+
 		foreach ($rules as $rule) {
 			list($rule,$replacement) = @preg_split("/[\t\s]/",$rule,-1,PREG_SPLIT_NO_EMPTY); //Split the rule from the replace
 
@@ -152,13 +154,13 @@ class Fango {
 
 		return $this;
 	}
-	
+
 	/**
 	 * @param string $controller
 	 * @param string $action
-	 * @param array $params 
+	 * @param array $params
 	 */
-	function dispatch($controller=null,$action=null,array $params=null){
+	function dispatch($controller=null,$action=null,array $params=null) {
 		if ($controller)$this->controller = $controller;
 		if ($action) $this->action = $action;
 		if ($params!==null) $this->params = $params;
@@ -176,12 +178,12 @@ class Fango {
 			$class_name = "{$this->controller}Controller";
 			$method_name = "{$this->action}Action";
 		}
-		
+
 		$obj_controller = new $class_name($this);
 		$obj_controller->init();
-		$obj_controller->$method_name();
-		
-		$this->afterDispatch->fire($this); //AfterDispatch Event Fired
+		$result = $obj_controller->$method_name();
+
+		$this->afterDispatch->fire($this,$result); //AfterDispatch Event Fired
 	}
 
 	/**
@@ -189,13 +191,13 @@ class Fango {
 	 * @param array $custom_rules
 	 * @param string $subject
 	 */
-	function run($custom_rules = array(),$subject = ''){
+	function run($custom_rules = array(),$subject = '') {
 		return $this->route($custom_rules,$subject)->dispatch();
 	}
 
 	/**
 	 * @param string $name of the request param
-	 * @param mixed $default value 
+	 * @param mixed $default value
 	 */
 	static function request($name,$default_value=null) {
 		if (!isset($_REQUEST[$name])) {
@@ -213,27 +215,27 @@ class FangoController {
 	public $fango;
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	static $onLoad;
 
 
 	/**
-	 * @param Fango $fango 
+	 * @param Fango $fango
 	 */
 	function __construct(Fango $fango) {
 		$this->fango = $fango;
 		self::$onLoad->fire($this);
 	}
-	
+
 	/**
 	 * setter/getter for params
-	 * 
+	 *
 	 * @param string $param
 	 * @param mixed $value
 	 * @return mixed
 	 */
-	function param($param,$value=null){
+	function param($param,$value=null) {
 		if ($value!==null) {
 			$this->fango->params[$param] = $value;
 		}
@@ -243,7 +245,7 @@ class FangoController {
 
 		return null;
 	}
-	
+
 	function error404Action() {
 		header("HTTP/1.0 404 Not Found");
 		echo "<h1>Page Not Found</h1>";
@@ -270,7 +272,7 @@ class FangoView {
 	protected $_template;
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	static $onLoad;
 
@@ -278,7 +280,7 @@ class FangoView {
 	 * @param string $name of the view
 	 * @param string $template to render
 	 */
-	function __construct($name = null,$template=null){
+	function __construct($name = null,$template=null) {
 		if ($name) $this->_name = $name;
 		if (!$template && $name) {
 			$this->_template = "templates/$name.phtml";
@@ -287,7 +289,7 @@ class FangoView {
 		}
 		self::$onLoad->fire($this);
 	}
-	
+
 	/**
 	 * Return the string to include jquery
 	 * @param string $version of jquery
@@ -302,7 +304,7 @@ class FangoView {
 	 * @param string $template
 	 * @return string
 	 */
-	function render($template=null){
+	function render($template=null) {
 		ob_start();
 		if ($template) $this->_template = $template;
 		include $this->_template;
@@ -369,7 +371,7 @@ class FangoView {
 		}
 		throw new Exception ("Method $name not found on class " . get_class($this));
 	}
-	
+
 }
 
 /**
@@ -425,13 +427,13 @@ class FangoInput {
 		}
 		return $ret . $properties;
 	}
-	
+
 	/**
 	 * Render the view as imput
 	 * @param string $properties the html properties
 	 * @return string the html input
 	 */
-	function input($properties=''){
+	function input($properties='') {
 		$value = htmlspecialchars($this->value);
 		$properties = $this->getProperties($properties);
 		return "<input name=\"$this->name\" $properties value=\"$value\" />";
@@ -442,7 +444,7 @@ class FangoInput {
 	 * @param string $properties the html properties
 	 * @return string the html select
 	 */
-	function select($properties=''){
+	function select($properties='') {
 		$properties = $this->getProperties($properties);
 		if ($this->_options == array_values($this->options)) { //This is a standard array and not a map
 			$this->_options = array_combine($this->options,$this-_options); // Tranform a standard array in map value=>value
@@ -466,7 +468,7 @@ class FangoInput {
 	 * @param string $properties the html properties
 	 * @return string
 	 */
-	function textarea($properties=''){
+	function textarea($properties='') {
 		$value = htmlspecialchars($this->value);
 		$properties = $this->getProperties($properties);
 		return "<textarea name=\"$this->name\" $properties >$value</textarea>";
@@ -493,7 +495,7 @@ class FangoInput {
 class FangoDB extends PDO {
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	static $onLoad;
 
@@ -521,6 +523,7 @@ class FangoDB extends PDO {
 	 * Instance a table model an inject it with the database
 	 * @param string $table name
 	 * @param string $pk name
+	 * @param string $class the model class instance
 	 * @return FangoModel
 	 */
 	function model($table,$pk = null) {
@@ -532,7 +535,7 @@ class FangoDB extends PDO {
 	 * @param array $params
 	 * @return PDOStatement
 	 */
-	function execute($sql,$params = null){
+	function execute($sql,$params = null) {
 		$sth = $this->prepare($sql);
 		$sth->execute($params);
 		return $sth;
@@ -541,9 +544,9 @@ class FangoDB extends PDO {
 	/**
 	 * @param string $sql
 	 * @param array $params
-	 * @return array 
+	 * @return array
 	 */
-	function getAll($sql,$params = null){
+	function getAll($sql,$params = null) {
 		$sth = $this->execute($sql,$params);
 		return $sth->fetchAll(PDO::FETCH_ASSOC);
 	}
@@ -551,9 +554,9 @@ class FangoDB extends PDO {
 	/**
 	 * @param string $sql
 	 * @param array $params
-	 * @return array 
+	 * @return array
 	 */
-	function getRow($sql,$params = null){
+	function getRow($sql,$params = null) {
 		$sth = $this->execute($sql,$params);
 		return $sth->fetch(PDO::FETCH_ASSOC);
 	}
@@ -563,7 +566,7 @@ class FangoDB extends PDO {
 	 * @param array $params
 	 * @return array
 	 */
-	function getCol($sql,$params = null){
+	function getCol($sql,$params = null) {
 		$sth = $this->execute($sql,$params);
 		return $sth->fetchAll(PDO::FETCH_COLUMN);
 	}
@@ -618,7 +621,7 @@ class FangoModel {
 	protected $limit = array();
 
 	/**
-	 * @var FangoEvent 
+	 * @var FangoEvent
 	 */
 	static $onLoad;
 
@@ -636,12 +639,12 @@ class FangoModel {
 		$this->name = $name;
 		$this->pk = $pk;
 		$this->setDB($db);
-		
+
 		self::$onLoad->fire($this);
 	}
 
 	/**
-	 * @param FangoDB $db 
+	 * @param FangoDB $db
 	 */
 	function setDB($db=null) {
 		if (is_object($db)) {
@@ -654,7 +657,7 @@ class FangoModel {
 	/**
 	 * Set the fields to extract
 	 * @param array $fields
-	 * @return FangoModel 
+	 * @return FangoModel
 	 */
 	function fields($fields) {
 		if (!is_array($fields)) $fields = func_get_args();
@@ -664,7 +667,7 @@ class FangoModel {
 	}
 
 	/**
-	 * Add a where clause in the PDO format 
+	 * Add a where clause in the PDO format
 	 * @param string $clause
 	 * @param array $params
 	 * @return FangoModel
@@ -679,7 +682,7 @@ class FangoModel {
 		} else {
 			$this->where['params'] = $params;
 		}
-		
+
 		return $this;
 	}
 
@@ -698,7 +701,7 @@ class FangoModel {
 	 * Set limit and offset
 	 * @param int $limit
 	 * @param int $offset
-	 * @return FangoModel 
+	 * @return FangoModel
 	 */
 	function limit($limit,$offset = null) {
 		$this->limit = array($limit,$offset);
@@ -727,7 +730,7 @@ class FangoModel {
 		if ($this->fields) $fields = join(',',$this->fields);
 
 		if ($this->where) $where = 'WHERE ' . join (' AND ',$this->where['clause']);
-		
+
 		if ($this->order) {
 			$order = "ORDER BY ";
 			foreach ($this->order as $ao) {
@@ -735,7 +738,7 @@ class FangoModel {
 			}
 			$order = substr($order,0,-1);
 		}
-		
+
 		if ($this->limit) {
 			$limit = "LIMIT " . $this->limit[0];
 			if ($this->limit[1]) {
@@ -792,7 +795,7 @@ class FangoModel {
 		$e = $this->beforeInsert->fire($this,$row); //BeforeInsert event fired
 		list (,$row) = $e->params;
 		if ($e->preventDefault()) return;
-		
+
 		$keys = array_keys($row);
 
 		$fields = join(',',$keys);
@@ -809,9 +812,9 @@ class FangoModel {
 	 * @param string $seqname
 	 * @return int
 	 */
-	 function lastInsertID($seqname = null) {
-		 return $this->db->lastInsertId($seqname);
-	 }
+	function lastInsertID($seqname = null) {
+		return $this->db->lastInsertId($seqname);
+	}
 
 	/**
 	 * Delete the row specified by the pk param in the related table
@@ -822,7 +825,7 @@ class FangoModel {
 		$e = $this->beforeDelete->fire($this,$pk);
 		list (,$pk) = $e->params;
 		if ($e->preventDefault()) return;
-		
+
 		$this->requirePK();
 		list($where,$params) = $this->pkParts(null,$pk);
 		$sql = "DELETE FROM {$this->name} WHERE $where";
@@ -856,12 +859,12 @@ class FangoModel {
 		$this->afterUpdate->fire($this,$row,$pk,$return); //AfterUpdate event fired
 		return $return;
 	}
-	
+
 	/**
 	 * The arg row is new?
 	 * @param array $row to consider
 	 * @param mixed $pk
-	 * @return <type> 
+	 * @return <type>
 	 */
 	function isNew($row,$pk=null) {
 		list($pk_where,$pk_values) = $this->pkParts($row,$pk);
@@ -875,7 +878,7 @@ class FangoModel {
 	 * @return FangoModel
 	 */
 	function reset($what = null) {
-		if (in_array($what,array('fields','where','limit','order'))){
+		if (in_array($what,array('fields','where','limit','order'))) {
 			$this->$what = array();
 		} else {
 			$this->fields = array();
@@ -887,7 +890,7 @@ class FangoModel {
 	}
 
 	/**
-	 * Return an array with pk where and params ready to be used to compose a query 
+	 * Return an array with pk where and params ready to be used to compose a query
 	 * @param string $row
 	 * @param mixed $pk_value
 	 * @return array
@@ -985,12 +988,12 @@ class FangoEvent {
 	}
 
 	/**
-	 * @param FangoObserver $observer 
+	 * @param FangoObserver $observer
 	 */
 	function addObserver($observer) {
 		if (!in_array($observer,$this->observers)) $this->observers[] = $observer;
 	}
-	
+
 	/**
 	 * @param FangoObserver $observer
 	 */
@@ -1038,15 +1041,17 @@ class FangoObserver {
 	}
 }
 
-class FangoPlugin  extends FangoObserver {
+class FangoPlugin extends FangoObserver {
 
 	static $loaded = array();
-	
-	function  __construct() {
-		if (isset($this->pluginto)) $this->pluginto($this->pluginto);
-	}
+	protected $plugged_class;
+	protected $plugged_into;
+	protected $plugged;
 
-	function pluginto($class) {
+	function plug($class,$into=null) {
+		$this->plugged_class = $class;
+		$this->plugged_into = $into;
+		
 		$pro = get_class_vars($class);
 		if (isset($pro['onLoad']) && $pro['onLoad'] instanceof FangoEvent) {
 			$this->subscribe($pro['onLoad']);
@@ -1054,17 +1059,31 @@ class FangoPlugin  extends FangoObserver {
 	}
 
 	function onLoad($e) {
-		if (is_callable(array($this, 'plug'))) $this->plug($e->params[0]);
+		$plugin = clone $this;
+		$plugin->plugged = $e->params[0]; //The plugged object
+		
+		if ($this->plugged_into) $plugin->plugged->{$this->plugged_into} = $plugin;
+		if (is_callable(array($plugin, 'onPlug'))) $plugin->onPlug($plugin->plugged);
 	}
 
 	static function load($name) {
 		if (!isset(self::$loaded[$name])) {
 			$class = "{$name}Plugin";
+			if (!class_exists($class)) {
+				require_once "plugins/{$name}.php";
+			}
 			self::$loaded[$name] = new $class;
 		}
 		return self::$loaded[$name];
 	}
 
+	static function loadRemote($name) {
+		
+	}
+
+	static function get($name) {
+		return self::load($name);
+	}
 }
 
 //onLoad events set to class level
