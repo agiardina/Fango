@@ -5,11 +5,9 @@ ini_set('include_path','../application:'. ini_get('include_path'));
 //Change the include path of fango if you need
 require_once '../../fango.php';
 require_once 'controllers/default.php';
-//require_once '../../plugins/net.agiardina.json.php';
 
 //Just to show how plugins work
 FangoPlugin::load('stupid');
-FangoPlugin::load('json');
 
 FangoDB::connect('mysql:dbname=fango;host=127.0.0.1','root');
 $fango = new Fango();
