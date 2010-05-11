@@ -1,0 +1,25 @@
+<html>
+	<head>
+		<?=$this->includeJQuery()?>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<script type="text/javascript">
+$(document).ready(function(){
+	$("a#refresh").click(function(event){
+		$.get('/refresh',function(data){
+			$('#messages').replaceWith(data);
+		})
+		event.preventDefault();
+	});
+});
+		</script>
+	</head>
+	<body>
+		<div id="content">
+			<h1>SAY IT, a testing Fango Application</h1>
+			<?while($content = $this->yield()):?>
+				<?=$content?>
+			<?endwhile;?>
+			<div><a href="/refresh" id="refresh">Refresh</a></div>
+		</div>
+	</body>
+</html>

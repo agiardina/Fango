@@ -1,0 +1,34 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="/style.css" type="text/css" />
+	</head>
+	<body>
+		<div id="header">
+			<h1><a href="/">Fango Doc Navigator</a></h1>
+		</div>
+		<div id="classes">
+			<ul>
+				<?php foreach ($this->classes as $class): ?>
+				<li>
+					<a class="<?php echo $class->getName() == $this->class_name ? 'selected': '' ?>" href="/<?php echo $class->getName()?>"><?php echo $class->getName()?></a>
+				</li>
+				<?php endforeach ?>
+			</ul>
+		</div>
+
+		<div id="methods">
+			<ul>
+			<?php foreach ($this->methods as $method):?>
+			<li>
+				<a class="<?php echo $method->getName() == $this->method_name ? 'selected': '' ?>" href="/<?php echo $this->class_name?>/<?php echo $method->getName()?>"><?php echo $method->getName()?></a>
+			</li>
+			<?php endforeach;?>
+			</ul>
+		</div>
+
+		<div id="board">
+			<?php echo $this->class_board ?>
+			<?php echo $this->method_board ?>
+		</div>
+	</body>
+</html>

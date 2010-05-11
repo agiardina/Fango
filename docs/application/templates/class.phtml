@@ -1,0 +1,11 @@
+<div id="class">
+	<h2 id="class-name"><?php echo $this->class_name;?></h2>
+	<div id="class-comment"><?php echo $this->doc_comment;?></div>
+	<div id="class-properties">
+		<ul>
+			<?php foreach ($this->properties as $property): ?>
+			<div><?php echo Reflection::export($property);?></div>
+			<?php endforeach;?>
+		</ul>
+	</div>
+</div>
