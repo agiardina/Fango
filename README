@@ -21,5 +21,9 @@ one-file framework is better than not using any framework at all. Or, simply,
 you just don't need any additional functionality than those ones fango gives you.
 
 How can I test the sayit demo?
-Create a virtual host to point to demo/sayit/public. Create a mysql db called fango.
+Create a virtual host to point to demos/sayit/public. Create a mysql db called fango.
 Install the messages.sql inside the sql folder. 
+
+The API DOC?
+There is a meta application to document Fango itself. Create a virtual host 
+pointing to docs/public 

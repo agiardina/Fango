@@ -7,7 +7,10 @@ require_once '../../../fango.php';
 require_once 'controllers/default.php';
 
 //Just to show how plugins work
-FangoPlugin::load('stupid');
+require_once 'plugins/stupid.php';
+new StupidPlugin();
+
+
 
 FangoDB::connect('mysql:dbname=fango;host=127.0.0.1','root');
 $fango = new Fango();

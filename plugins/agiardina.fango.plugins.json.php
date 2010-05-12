@@ -1,22 +1,23 @@
 <?php
-class JsonPlugin extends FangoPlugin {
+class JsonPlugin extends FangoBase {
 
 	protected $is_json_request = false;
 	protected $is_json_response = false;
 
 	function __construct() {
 		//Wake up the plugin on Fango::$onLoad->fire()
-		$this->plug('Fango');
+		$this->subscribe(Fango::$onNew,'onFangoLoad');
 	}
 
-	function onPlug($fango) {
+	function onFangoLoad($e) {
+		$fango = $e->target;
 		//Intercept the before and after dispatch
 		$this->subscribe($fango->beforeDispatch);
 		$this->subscribe($fango->afterDispatch);
 	}
 
 	function beforeDispatch($e) {
-		$fango = $e->params[0];
+		$fango = $e->target;
 		//Is a json Call?
 		if (isset($_SERVER['HTTP_ACCEPT'])) {
 			if (strpos($_SERVER['HTTP_ACCEPT'],'application/json') !== false  ||
@@ -41,7 +42,7 @@ class JsonPlugin extends FangoPlugin {
 	function afterDispatch($e) {
 		if ($this->is_json_response) {
 			//Take the reponse and convert on json format
-			$result = $e->params[1];
+			$result = $e->params[0];
 			echo json_encode($result);
 		}
 	}
