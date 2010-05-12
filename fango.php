@@ -23,8 +23,8 @@
 class FangoBase {
 
 	/**
-	 * The array to event, used by FangoEvent::lazyLoading to load
-	 * events on demand
+	 * The array of events, used by FangoEvent::lazyLoading to load
+	 * an event on demand
 	 */
 	public $events = array();
 	
@@ -1009,7 +1009,7 @@ class FangoModel extends FangoBase {
 
 class FangoEvent extends FangoBase {
 	/**
-	 * @var array the params passed to the obsvers
+	 * @var array the params passed to the obsers
 	 */
 	public $params;
 
