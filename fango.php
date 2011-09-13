@@ -209,6 +209,11 @@ class Fango extends FangoBase {
 			$this->action = $this->notfound_action;
 			$class_name = "{$this->controller}Controller";
 			$method_name = "{$this->action}Action";
+                        
+                        if (!class_exists($class_name)) {
+                            $this->controller = 'Fango';
+                            $class_name = 'FangoController';
+                        }
 		}
 
 		$obj_controller = new $class_name($this);

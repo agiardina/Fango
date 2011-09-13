@@ -24,7 +24,9 @@ class JsonPlugin extends FangoBase {
 				strpos($_SERVER['HTTP_ACCEPT'],'text/javascript') !== false ) {
 				$this->is_json_request = true;
 			}
-		}elseif (isset($fango->params['json'])) {
+		}
+                
+                if (isset($fango->params['json'])) {
 			$this->is_json_request = true;
 		}
 
