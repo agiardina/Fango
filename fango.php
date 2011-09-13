@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Andrea Giardina <andrea.giardina@crealabs.it>
+ * @author Andrea Giardina <andrea.giardina@gmail.com>
  * @link http://github.com/agiardina/Fango
  */
 
