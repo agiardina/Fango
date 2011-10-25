@@ -136,6 +136,7 @@ class Fango extends FangoBase {
 		$rules[] = '(\w+)/(\w+)/(.*)$ controller=$1,action=$2,params=$3';
 		$rules[] = '(\w+)/(\w+)/?$ controller=$1,action=$2';
 		$rules[] = '(\w+)/?$ controller=$1';
+                $rules[] = '(\w+)\.html?$ action=$1';
 		if ($custom_rules) {
 			if (!is_array($custom_rules)) $custom_rules = array($custom_rules);
 			$rules = array_merge($custom_rules,$rules);
@@ -373,7 +374,7 @@ class FangoView extends FangoBase {
 	 */
 	function render($template=null) {
 		ob_start();
-                export((array)$this);
+                extract((array)$this);
 		if ($template) $this->_template = $template;
 		include $this->_template;
 		return ob_get_clean();
@@ -932,3 +933,75 @@ FangoDB::$onNew = new FangoEvent('onNew');
 FangoModel::$onNew = new FangoEvent('onNew');
 FangoView::$onNew = new FangoEvent('onNew');
 FangoController::$onNew = new FangoEvent('onNew');
+
+//CREATE A BASE APPLICATION STRUCTURE
+if (PHP_SAPI === 'cli') {
+    if (strtolower($argv[1]) === 'create') {
+        if (version_compare(PHP_VERSION, '5.3.0') < 0) {
+            throw new Exception("Version 5.3.0 minimum required");
+        }
+        
+        if ($argc > 2) {
+            $dir = $argv[2];
+        } else {
+            $dir = dirname(PHP_SELF);
+        }
+        
+        if (!is_dir($dir) || !is_writable($dir)) {
+            throw new Exception("The $dir is not writable");
+        }
+        
+        $controllers_path = rtrim($dir,'/') . '/controllers';
+        $templates_path = rtrim($dir,'/') . '/templates';
+        $public_path = rtrim($dir,'/') . '/public';
+        
+        if (is_dir($controllers_path) || is_dir($templates_path) || is_dir($public_path)) {
+            throw new Exception("Directory '$dir' is not empty");
+        } else{
+            mkdir($controllers_path);
+            mkdir($public_path);
+            mkdir($templates_path);
+        }
+        
+        $index = <<<'TEXT'
+<?php
+ini_set('include_path','..:'. ini_get('include_path'));
+require_once 'fango.php';
+require_once 'controllers/default.php';
+//FangoDB::connect('mysql:dbname=fango;host=127.0.0.1','root', 'password');
+$fango = new Fango();
+$fango->run();
+TEXT;
+        
+        $htaccess = <<<'TEXT'
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+TEXT;
+        
+        $controller = <<<'TEXT'
+<?php
+class DefaultController  extends FangoController{
+    function indexAction() {
+        $view = new FangoView('index');
+        $view->title = 'My First Page';
+        echo $view;
+    }
+}
+TEXT;
+        
+        $view = <<<'TEXT'
+<!doctype>
+<html>
+    <h1><?=$title?></h1>
+</html>
+TEXT;
+     
+        file_put_contents("$public_path/index.php", "$index");
+        file_put_contents("$public_path/.htaccess", $htaccess);
+        file_put_contents("$controllers_path/default.php", $controller);
+        file_put_contents("$templates_path/index.phtml", $view);
+    }
+}
