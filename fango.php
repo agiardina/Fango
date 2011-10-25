@@ -135,8 +135,8 @@ class Fango extends FangoBase {
 		//Rules merged
 		$rules[] = '(\w+)/(\w+)/(.*)$ controller=$1,action=$2,params=$3';
 		$rules[] = '(\w+)/(\w+)/?$ controller=$1,action=$2';
-		$rules[] = '(\w+)/?$ controller=$1';
-                $rules[] = '(\w+)\.html?$ action=$1';
+                $rules[] = '(\w+)\.html$ action=$1';
+		$rules[] = '(\w+)/?$ controller=$1';                
 		if ($custom_rules) {
 			if (!is_array($custom_rules)) $custom_rules = array($custom_rules);
 			$rules = array_merge($custom_rules,$rules);
@@ -150,7 +150,7 @@ class Fango extends FangoBase {
 			list($rule,$replacement) = @preg_split("/[\t\s]/",$rule,-1,PREG_SPLIT_NO_EMPTY); //Split the rule from the replace
 
 			if (preg_match("~$rule~",$subject)) {
-
+                            
 				$replacement = preg_replace("~$rule~",$replacement,$subject);
 				$a_conf = explode(',',$replacement);
 
