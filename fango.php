@@ -367,21 +367,13 @@ class FangoView extends FangoBase {
 	}
 
 	/**
-	 * Return the string to include jquery
-	 * @param string $version of jquery
-	 * @return string
-	 */
-	static function includeJQuery($version = "1.4.1") {
-		return "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/{$version}/jquery.min.js\" type=\"text/javascript\"></script>";
-	}
-
-	/**
 	 * Render the default view or the view passed as param
 	 * @param string $template
 	 * @return string
 	 */
 	function render($template=null) {
 		ob_start();
+                export((array)$this);
 		if ($template) $this->_template = $template;
 		include $this->_template;
 		return ob_get_clean();
@@ -393,177 +385,6 @@ class FangoView extends FangoBase {
 	 */
 	function __toString() {
 		return $this->render();
-	}
-
-	/**
-	 * Loop over all subview
-	 * @return FangoView
-	 */
-	function yield($type='FangoView') {
-		static $i = -1;
-		$vars = array_keys(get_object_vars($this));
-
-		$n = count($vars);
-		while (++$i < $n) {
-			$var = $vars[$i];
-			$obj = $this->$var;
-			if ($obj instanceof $type) {
-				return $obj;
-			}
-		}
-		$i = -1;
-		return false;
-	}
-
-	/**
-	 * Return all values of subviews
-	 * @return array
-	 */
-	function getValues() {
-		$ret = array();
-		foreach ($this as $obj) {
-			if ($obj instanceof FangoInput) {
-				$name = $obj->getName();
-				if ($name) $ret[$name] = $obj->getValue();
-			}
-		}
-		return $ret;
-	}
-
-	/**
-	 * A method getSomething will return the value of the protected var _something
-	 * A method something will set the value of the protected var _something and return
-	 * the object without breaking the chain
-	 */
-	function __call($name,$arguments) {
-		if (strpos('get', $name) === 0 && strlen($name)>3) {
-			$property = '_' . substr($name, 4);
-			if (property_exists($this, $property)) {
-				return $this->$property;
-			}
-		} elseif (property_exists($this, $name) && count($arguments)) {
-			$this->$name = $arguments[0];
-			return $this;
-		}
-		throw new Exception ("Method $name not found on class " . get_class($this));
-	}
-
-}
-
-/**
- * @method FangoInput name() name (string $name)
- * @method FangoInput options() options(array $options)
- * @method FangoInput value() value(string $value)
- * @method string getName()
- * @method string getValue getValue()
- * @method array getOptions()
- */
-class FangoInput extends FangoBase {
-	/**
-	 * The name of the input
-	 * @var string
-	 */
-	protected $name;
-
-	/**
-	 * The value of the input
-	 * @var string
-	 */
-	protected $value;
-
-	/**
-	 * The options array, used by render as select
-	 * @var array
-	 */
-	protected $options = array();
-
-	/**
-	 * @var FangoEvent
-	 */
-	static $onNew;
-
-	/**
-	 * @param string $name
-	 * @param string $value
-	 */
-	function __construct($name,$value=null) {
-		if ($name) $this->name = $name;
-		if ($value) $this->value = $value;
-		self::$onNew->fire($this);
-	}
-
-	function getProperties($properties='') {
-		$ret = '';
-		$class_vars = get_class_vars(get_class($this));
-		foreach ($this as $key=>$value) {
-			if (!array_key_exists($key,$class_vars)) {  //I want just dinamyc properties
-				$value = addslashes($value);
-				$ret .= "$key=\"$value\" ";
-			}
-		}
-		return $ret . $properties;
-	}
-
-	/**
-	 * Render the view as imput
-	 * @param string $properties the html properties
-	 * @return string the html input
-	 */
-	function input($properties='') {
-		$value = htmlspecialchars($this->value);
-		$properties = $this->getProperties($properties);
-		return "<input name=\"$this->name\" $properties value=\"$value\" />";
-	}
-
-	/**
-	 * Render the view as select
-	 * @param string $properties the html properties
-	 * @return string the html select
-	 */
-	function select($properties='') {
-		$properties = $this->getProperties($properties);
-		if ($this->_options == array_values($this->options)) { //This is a standard array and not a map
-			$this->_options = array_combine($this->options,$this-_options); // Tranform a standard array in map value=>value
-		}
-		$sreturn = "<select name=\"$this->name\" $properties >";
-		foreach ($this->options as $key=>$label) {
-			$key = htmlspecialchars($key);
-			if ($this->value == $key) {
-				$selected = 'selected="selected"';
-			} else {
-				$selected = '';
-			}
-			$sreturn .= "<option $selected value=\"$key\">$label</option>";
-		}
-		$sreturn .= "</select>";
-		return $sreturn;
-	}
-
-	/**
-	 * Render the input as textarea
-	 * @param string $properties the html properties
-	 * @return string
-	 */
-	function textarea($properties='') {
-		$value = htmlspecialchars($this->value);
-		$properties = $this->getProperties($properties);
-		return "<textarea name=\"$this->name\" $properties >$value</textarea>";
-	}
-
-	/**
-	 * A method getSomething will return the value of the var something
-	 * A method something will set the value of the var something and return
-	 * the object without breaking the chain
-	 */
-	function __call($name,$arguments) {
-		if (strpos($name,'get') === 0 && strlen($name)>3) {
-			$property = strtolower(substr($name, 3));
-			if (isset($this->$property)) return $this->$property;
-		} else {
-			if (!count($arguments)) $arguments[0] = $name; //If no value passed to the method
-			$this->$name = $arguments[0];
-			return $this;
-		}
 	}
 
 }
@@ -1110,5 +931,4 @@ Fango::$onNew = new FangoEvent('onNew');
 FangoDB::$onNew = new FangoEvent('onNew');
 FangoModel::$onNew = new FangoEvent('onNew');
 FangoView::$onNew = new FangoEvent('onNew');
-FangoInput::$onNew = new FangoEvent('onNew');
 FangoController::$onNew = new FangoEvent('onNew');
